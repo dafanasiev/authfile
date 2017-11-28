@@ -3,10 +3,16 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "5Yb2z6UO+Arm/TEd+OEtdnwOt1A=",
+			"checksumSHA1": "UWjVYmoHlIfHzVIskELHiJQtMOI=",
+			"path": "golang.org/x/crypto/bcrypt",
+			"revision": "365904b0f3154c6e11a9cf541c9803d1dca0445a",
+			"revisionTime": "2017-11-25T18:51:59Z"
+		},
+		{
+			"checksumSHA1": "4vi1yAnCfc+roJdMn/VZeHxlHj0=",
 			"path": "golang.org/x/crypto/ssh/terminal",
-			"revision": "9f005a07e0d31d45e6656d241bb5c0f2efd4bc94",
-			"revisionTime": "2017-09-21T17:41:56Z"
+			"revision": "365904b0f3154c6e11a9cf541c9803d1dca0445a",
+			"revisionTime": "2017-11-25T18:51:59Z"
 		}
 	],
 	"rootPath": "github.com/JonathanLogan/authfile"
