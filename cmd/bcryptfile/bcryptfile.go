@@ -12,7 +12,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -167,7 +166,7 @@ func userLine(cost int, username, password string) string {
 	if err != nil {
 		printHelp(err.Error())
 	}
-	return username + ":" + base64.StdEncoding.EncodeToString(phash) + "\n"
+	return username + ":" + string(phash) + "\n"
 }
 
 // filterFunc reads a line in and returns a line. If lastLine is true, the last line
@@ -232,7 +231,7 @@ func addUser(args []string) error {
 	}
 	username := strings.TrimSpace(args[1])
 	if len(args) >= 3 {
-		password = args[3]
+		password = args[2]
 	}
 	f, err := openFile(args[0], os.O_RDWR)
 	if err != nil {
@@ -314,7 +313,7 @@ func changeUser(args []string) error {
 	}
 	username := strings.TrimSpace(args[1])
 	if len(args) >= 3 {
-		password = args[3]
+		password = args[2]
 	}
 	f, err := openFile(args[0], os.O_RDWR)
 	if err != nil {

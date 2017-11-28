@@ -3,7 +3,6 @@ package authfile
 import (
 	"bufio"
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"os"
@@ -134,7 +133,7 @@ func (filebackend *FileBackend) readFile() {
 	for {
 		line, err = r.ReadString('\n')
 		if err == io.EOF {
-			return
+			break
 		}
 		lineTrimmed = strings.TrimSpace(line)
 		if len(lineTrimmed) < 2 { // Ignore empty or single char lines.
@@ -154,11 +153,7 @@ func (filebackend *FileBackend) readFile() {
 		if len(fields) != 2 { // Skip lines that have the wrong format
 			continue
 		}
-		pw, err := base64.StdEncoding.DecodeString(fields[1])
-		if err != nil { // Skip lines with bad encoding
-			continue
-		}
-		filebackend.authservice.Load(fields[0], pw)
+		filebackend.authservice.Load(fields[0], []byte(fields[1]))
 	}
 	filebackend.authservice.Commit()
 }
@@ -187,6 +182,6 @@ func (filebackend *FileBackend) writeFile() {
 	w.WriteString("$" + strconv.Itoa(filebackend.authservice.GetCost()) + "\n") // Save cost parameter.
 	entries := filebackend.authservice.List()
 	for _, e := range entries {
-		w.WriteString(e.Username + ":" + base64.StdEncoding.EncodeToString(e.PasswordHash) + "\n")
+		w.WriteString(e.Username + ":" + string(e.PasswordHash) + "\n")
 	}
 }
