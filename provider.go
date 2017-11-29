@@ -105,7 +105,7 @@ func (filebackend *FileBackend) getChangeStamp() ([]byte, error) {
 	}
 	sysStat := stat.Sys()
 	if nt, ok := sysStat.(*syscall.Stat_t); ok {
-		inode = nt.Ino
+		inode = uint64(nt.Ino)
 	}
 	return []byte(fmt.Sprintf("%d.%d", inode, stat.ModTime().UnixNano())), nil
 }
