@@ -2,6 +2,7 @@ package authfile
 
 import (
 	"errors"
+	"runtime"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -34,6 +35,14 @@ type msgAuthenticate struct {
 	r                  chan error
 }
 
+func (m msgAuthenticate) Copy() msgAuthenticate {
+	return msgAuthenticate{
+		username: m.username,
+		password: m.password,
+		r:        m.r,
+	}
+}
+
 type msgDelete struct {
 	username string
 	r        chan error
@@ -44,14 +53,39 @@ type msgAdd struct {
 	r                  chan error
 }
 
+func (m msgAdd) Copy() msgAdd {
+	return msgAdd{
+		username: m.username,
+		password: m.password,
+		r:        m.r,
+	}
+}
+
 type msgModify struct {
 	username, password string
 	r                  chan error
 }
 
+func (m msgModify) Copy() msgModify {
+	return msgModify{
+		username: m.username,
+		password: m.password,
+		r:        m.r,
+	}
+}
+
 type msgVerifyModify struct {
 	username, oldpassword, newpassword string
 	r                                  chan error
+}
+
+func (m msgVerifyModify) Copy() msgVerifyModify {
+	return msgVerifyModify{
+		username:    m.username,
+		oldpassword: m.oldpassword,
+		newpassword: m.newpassword,
+		r:           m.r,
+	}
 }
 
 type msgStartLoad struct{}
@@ -81,18 +115,25 @@ type msgList struct {
 }
 
 func (service *InMemoryService) runner(loadTimeout time.Duration) {
-	var cost int
 	var inLoad bool
 	var loadData *authData
 	var txid int64
+	var pool *WorkPool
+	// Set worker pool
+	cpus := runtime.NumCPU()
+	if cpus > 1 {
+		cpus--
+	}
+	pool = NewWorkPool(cpus)
 
 	curData := newAuthData()
 	msgBuffer := MsgBuffer(service.c, loadTimeout)
-	cost = bcrypt.DefaultCost
+	curData.setCost(uint64(bcrypt.DefaultCost))
 	for m := range service.c {
 		switch e := m.(type) {
 		case msgAuthenticate:
-			curData.authenticate(e, cost)
+			job := e.Copy()
+			pool.Dispatch(func() { curData.authenticate(job) })
 		case msgDelete:
 			if inLoad {
 				msgBuffer <- m
@@ -102,20 +143,24 @@ func (service *InMemoryService) runner(loadTimeout time.Duration) {
 			if inLoad {
 				msgBuffer <- m
 			}
-			curData.add(e, cost)
+			job := e.Copy()
+			pool.Dispatch(func() { curData.add(job) })
 		case msgModify:
 			if inLoad {
 				msgBuffer <- m
 			}
-			curData.modify(e, cost)
+			job := e.Copy()
+			pool.Dispatch(func() { curData.modify(job) })
 		case msgVerifyModify:
 			if inLoad {
 				msgBuffer <- m
 			}
-			curData.verifyModify(e, cost)
+			job := e.Copy()
+			pool.Dispatch(func() { curData.verifyModify(job) })
 		case msgStartLoad:
 			inLoad = true
 			loadData = newAuthData()
+			loadData.setCost(uint64(bcrypt.DefaultCost))
 			txid = time.Now().UnixNano()
 			time.AfterFunc(loadTimeout, func() { // Initialize automatic rollback call. Old Rollbacks are ineffective since they have a wrong txid
 				service.c <- msgRollback{txid: txid}
@@ -140,9 +185,13 @@ func (service *InMemoryService) runner(loadTimeout time.Duration) {
 				e.r <- ErrNoTransaction
 			}
 		case msgGetCost:
-			e.r <- cost
+			e.r <- int(curData.getCost())
 		case msgSetCost:
-			cost = e.cost
+			if inLoad {
+				loadData.setCost(uint64(e.cost))
+			} else {
+				curData.setCost(uint64(e.cost))
+			}
 		case msgList:
 			ret := make([]Entry, 0, len(curData.data))
 			for user, passHash := range curData.data {

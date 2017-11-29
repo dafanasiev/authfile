@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func Test_Short(t *testing.T) {
+func xTest_Short(t *testing.T) {
 	fb, err := NewFileBackend("/tmp/authfile.test", 0600, time.Second*5)
 	if err != nil {
 		t.Fatalf("NewFileBackend: %s", err)
