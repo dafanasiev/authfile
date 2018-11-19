@@ -27,7 +27,18 @@ type FileBackend struct {
 // a file change monitor if the update parameter is >0. In this case the authservice
 // update function will be called if the file has changed.
 func NewFileBackend(filename string, perm os.FileMode, update time.Duration) (*FileBackend, error) {
-	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, perm)
+	return newFileBackend(filename, os.O_RDWR|os.O_CREATE, perm, update)
+}
+
+// NewROFileBackend returns a new Read-Only file based IO backend. The backend will also start
+// a file change monitor if the update parameter is >0. In this case the authservice
+// update function will be called if the file has changed.
+func NewROFileBackend(filename string, perm os.FileMode, update time.Duration) (*FileBackend, error) {
+	return newFileBackend(filename, os.O_RDONLY, perm, update)
+}
+
+func newFileBackend(filename string, flag int, perm os.FileMode, update time.Duration) (*FileBackend, error) {
+	f, err := os.OpenFile(filename, flag, perm)
 	if err != nil {
 		return nil, err
 	}
